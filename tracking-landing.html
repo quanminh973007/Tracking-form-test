@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Landing Page</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    max-width: 480px;
+    width: 100%;
+    border: 1px solid #e8e8e8;
+    text-align: center;
+  }
+  .badge {
+    display: inline-block;
+    background: #EAF3DE;
+    color: #3B6D11;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 1.2rem;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+  p {
+    font-size: 15px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1.8rem;
+  }
+  .btn {
+    display: inline-block;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 14px 32px;
+    border-radius: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #333; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .note {
+    margin-top: 1.5rem;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .loader {
+    display: none;
+    margin: 1rem auto 0;
+    width: 20px; height: 20px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">Đang tuyển dụng</div>
+  <h1>Ứng tuyển ngay hôm nay</h1>
+  <p>Điền vào form bên dưới để gửi thông tin ứng tuyển. Chúng tôi sẽ liên hệ lại trong vòng 24 giờ.</p>
+  <button class="btn" id="cta-btn" onclick="goToForm()">Điền form ứng tuyển</button>
+  <div class="loader" id="loader"></div>
+  <p class="note">Thông tin của bạn được bảo mật tuyệt đối</p>
+</div>
+
+<script>
+  /* ============================================================
+     CẤU HÌNH — chỉ cần sửa phần này
+     ============================================================ */
+  var FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfpPHwkL9pyVlg2lQDQGug9IAdObcwBgpeCzWKI81u1oHOtLQ/viewform";
+
+  var ENTRY_FIELD = "entry.741558969";
+
+  // Tên câu hỏi khác muốn pre-fill (để trống nếu không cần)
+  // Ví dụ: { "entry.987654321": "Facebook Ads" }
+  var EXTRA_FIELDS = {};
+  /* ============================================================ */
+
+  function getParam(name) {
+    var url = new URL(window.location.href);
+    return url.searchParams.get(name) || "";
+  }
+
+  function buildTrackingValue() {
+    // Ưu tiên lấy từ utm_campaign, fallback sang utm_source, rồi ref
+    var campaign = getParam("utm_campaign");
+    var source   = getParam("utm_source");
+    var medium   = getParam("utm_medium");
+    var ref      = getParam("ref");
+    var adset    = getParam("utm_content");
+
+    if (campaign) {
+      var parts = [campaign];
+      if (medium) parts.push(medium);
+      if (adset)  parts.push(adset);
+      return parts.join("|");
+    }
+    if (source) return source;
+    if (ref)    return ref;
+    return "direct";
+  }
+
+  function saveToCookie(value) {
+    // Lưu cookie 30 ngày để không mất khi user redirect
+    var exp = new Date();
+    exp.setDate(exp.getDate() + 30);
+    document.cookie = "lp_tracking=" + encodeURIComponent(value) + "; expires=" + exp.toUTCString() + "; path=/";
+  }
+
+  function goToForm() {
+    var btn    = document.getElementById("cta-btn");
+    var loader = document.getElementById("loader");
+    btn.disabled = true;
+    loader.style.display = "block";
+
+    var trackingValue = buildTrackingValue();
+    saveToCookie(trackingValue);
+
+    // Build URL Google Form với pre-filled params
+    var url = new URL(FORM_URL);
+    url.searchParams.set("usp", "pp_url");
+    url.searchParams.set(ENTRY_FIELD, trackingValue);
+
+    // Thêm các field phụ nếu có
+    for (var key in EXTRA_FIELDS) {
+      url.searchParams.set(key, EXTRA_FIELDS[key]);
+    }
+
+    // Delay nhỏ để user thấy loading, rồi redirect
+    setTimeout(function() {
+      window.location.href = url.toString();
+    }, 600);
+  }
+
+  // Tự động redirect nếu URL có param auto=1
+  // (dùng cho A/B test không cần user click)
+  if (getParam("auto") === "1") {
+    goToForm();
+  }
+</script>
+</body>
+</html>
